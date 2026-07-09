@@ -12,30 +12,29 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(180deg, #1b2a1b 0%, #0d1a0d 100%);
+    background: #f4f4f4;
     font-family: 'Segoe UI', Arial, sans-serif;
-    color: #fff;
+    color: #333;
     user-select: none;
   }
   h1 {
     margin: 10px 0;
-    color: #8bc34a;
-    text-shadow: 0 0 10px rgba(139,195,74,0.5);
+    font-weight: 600;
   }
   #info {
     display: flex;
     gap: 30px;
-    font-size: 20px;
+    font-size: 16px;
     margin-bottom: 12px;
+    color: #555;
   }
   #wrap {
     position: relative;
   }
   canvas {
-    background: #142214;
-    border: 4px solid #8bc34a;
-    border-radius: 8px;
-    box-shadow: 0 0 30px rgba(139,195,74,0.25);
+    background: #fafafa;
+    border: 2px solid #999;
+    border-radius: 4px;
     display: block;
   }
   #overlay {
@@ -47,30 +46,30 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: rgba(0,0,0,0.55);
-    border-radius: 6px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 4px;
   }
   #overlay .title {
-    font-size: 26px;
-    font-weight: bold;
+    font-size: 22px;
+    font-weight: 600;
     margin-bottom: 8px;
-    color: #8bc34a;
+    color: #333;
   }
   #overlay .sub {
-    font-size: 15px;
-    color: #ddd;
+    font-size: 14px;
+    color: #666;
   }
   #hint {
     margin-top: 10px;
     font-size: 13px;
-    color: #9cae9c;
+    color: #999;
   }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<h1>🐍 Snake</h1>
+<h1>Snake</h1>
 <div id="info">
   <div>Score: <span id="score">0</span></div>
   <div>Best: <span id="best">0</span></div>
@@ -226,7 +225,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // subtle grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
   for (let x = 0; x <= COLS; x++) {
     ctx.beginPath();
     ctx.moveTo(x * CELL, 0);
@@ -241,19 +240,16 @@ function draw() {
   }
 
   // food
-  ctx.fillStyle = '#ff5252';
-  ctx.shadowColor = '#ff5252';
-  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#999';
   ctx.beginPath();
   ctx.arc(food.x * CELL + CELL/2, food.y * CELL + CELL/2, CELL/2 - 3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.shadowBlur = 0;
 
   // snake
   snake.forEach((s, i) => {
     const isHead = i === 0;
-    ctx.fillStyle = isHead ? '#aed581' : '#8bc34a';
-    ctx.strokeStyle = '#1b2a1b';
+    ctx.fillStyle = isHead ? '#555' : '#888';
+    ctx.strokeStyle = '#fafafa';
     ctx.lineWidth = 2;
     const pad = isHead ? 1 : 2;
     ctx.fillRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad*2, CELL - pad*2);
