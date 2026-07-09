@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Memory Match</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #f4f4f4;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #333;
+    user-select: none;
+  }
+  h1 {
+    margin: 10px 0;
+    font-weight: 600;
+  }
+  #info {
+    display: flex;
+    gap: 30px;
+    font-size: 16px;
+    margin-bottom: 14px;
+    color: #555;
+  }
+  #info span { font-weight: 600; color: #333; }
+  #wrap {
+    position: relative;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    grid-template-rows: repeat(4, 80px);
+    gap: 10px;
+    background: #e6e6e6;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .card {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    perspective: 600px;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.35s ease;
+    transform-style: preserve-3d;
+  }
+  .card.flipped .card-inner,
+  .card.matched .card-inner {
+    transform: rotateY(180deg);
+  }
+  .face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 600;
+  }
+  .face-back {
+    background: #ccc;
+    border: 2px solid #bbb;
+    color: transparent;
+  }
+  .face-front {
+    background: #fff;
+    border: 2px solid #999;
+    color: #333;
+    transform: rotateY(180deg);
+  }
+  .card.matched .face-front {
+    background: #f0f0f0;
+    border-color: #ccc;
+    color: #aaa;
+  }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(255,255,255,0.9);
+    border-radius: 6px;
+  }
+  #overlay .title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  #overlay .sub {
+    font-size: 14px;
+    color: #666;
+  }
+  button {
+    margin-top: 14px;
+    padding: 8px 22px;
+    font-size: 14px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { border-color: #555; }
+  #hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<h1>Memory Match</h1>
+<div id="info">
+  <div>Moves: <span id="moves">0</span></div>
+  <div>Matches: <span id="matches">0</span>/8</div>
+  <div>Time: <span id="time">0</span>s</div>
+</div>
+
+<div id="wrap">
+  <div id="board"></div>
+  <div id="overlay">
+    <div class="title" id="overlayTitle">Solved!</div>
+    <div class="sub" id="overlaySub">Moves: 0  |  Time: 0s</div>
+    <button id="restartBtn">Play Again</button>
+  </div>
+</div>
+
+<div id="hint">Click two cards to flip them — find all 8 matching pairs</div>
+
+<script>
+const SYMBOLS = ['★', '●', '■', '▲', '◆', '♥', '☀', '☾'];
+const boardEl = document.getElementById('board');
+const movesEl = document.getElementById('moves');
+const matchesEl = document.getElementById('matches');
+const timeEl = document.getElementById('time');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlayTitle');
+const overlaySub = document.getElementById('overlaySub');
+const restartBtn = document.getElementById('restartBtn');
+
+let cards, flipped, matchedCount, moves, locked, timer, seconds, started;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function init() {
+  const deck = shuffle([...SYMBOLS, ...SYMBOLS]);
+  cards = deck.map((sym, i) => ({ id: i, symbol: sym, flipped: false, matched: false }));
+  flipped = [];
+  matchedCount = 0;
+  moves = 0;
+  locked = false;
+  seconds = 0;
+  started = false;
+
+  movesEl.textContent = moves;
+  matchesEl.textContent = matchedCount;
+  timeEl.textContent = seconds;
+  overlay.style.display = 'none';
+  clearInterval(timer);
+
+  buildBoardDOM();
+}
+
+function buildBoardDOM() {
+  boardEl.innerHTML = '';
+  cards.forEach(card => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.id = card.id;
+    el.innerHTML = `
+      <div class="card-inner">
+        <div class="face face-back"></div>
+        <div class="face face-front">${card.symbol}</div>
+      </div>
+    `;
+    el.addEventListener('click', () => flipCard(card.id, el));
+    boardEl.appendChild(el);
+  });
+}
+
+function startTimer() {
+  started = true;
+  timer = setInterval(() => {
+    seconds++;
+    timeEl.textContent = seconds;
+  }, 1000);
+}
+
+function flipCard(id, el) {
+  if (locked) return;
+  const card = cards[id];
+  if (card.flipped || card.matched) return;
+  if (flipped.length === 2) return;
+
+  if (!started) startTimer();
+
+  card.flipped = true;
+  el.classList.add('flipped');
+  flipped.push({ card, el });
+
+  if (flipped.length === 2) {
+    moves++;
+    movesEl.textContent = moves;
+    locked = true;
+
+    const [a, b] = flipped;
+    if (a.card.symbol === b.card.symbol) {
+      a.card.matched = true;
+      b.card.matched = true;
+      a.el.classList.add('matched');
+      b.el.classList.add('matched');
+      matchedCount++;
+      matchesEl.textContent = matchedCount;
+      flipped = [];
+      locked = false;
+      if (matchedCount === SYMBOLS.length) {
+        endGame();
+      }
+    } else {
+      setTimeout(() => {
+        a.card.flipped = false;
+        b.card.flipped = false;
+        a.el.classList.remove('flipped');
+        b.el.classList.remove('flipped');
+        flipped = [];
+        locked = false;
+      }, 700);
+    }
+  }
+}
+
+function endGame() {
+  clearInterval(timer);
+  overlayTitle.textContent = 'Solved!';
+  overlaySub.textContent = `Moves: ${moves}  |  Time: ${seconds}s`;
+  overlay.style.display = 'flex';
+}
+
+restartBtn.addEventListener('click', init);
+
+init();
+</script>
+
+</body>
+</html>

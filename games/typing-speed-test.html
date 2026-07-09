@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Typing Speed Test</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #f4f4f4;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #333;
+  }
+  h1 {
+    margin: 10px 0;
+    font-weight: 600;
+  }
+  #info {
+    display: flex;
+    gap: 30px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: #555;
+  }
+  #info span { font-weight: 600; color: #333; }
+  #panel {
+    width: 100%;
+    max-width: 600px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    padding: 24px;
+  }
+  #textDisplay {
+    font-size: 18px;
+    line-height: 1.7;
+    letter-spacing: 0.3px;
+    margin-bottom: 18px;
+    min-height: 90px;
+  }
+  #textDisplay span.correct { color: #4caf50; }
+  #textDisplay span.incorrect { color: #e53935; text-decoration: underline; }
+  #textDisplay span.current { background: #ddd; border-radius: 2px; }
+  #textDisplay span.pending { color: #aaa; }
+  #inputBox {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    font-family: inherit;
+  }
+  #inputBox:focus { border-color: #888; }
+  #inputBox:disabled { background: #f0f0f0; }
+  #message {
+    margin-top: 14px;
+    font-size: 15px;
+    min-height: 20px;
+    color: #555;
+  }
+  button {
+    margin-top: 10px;
+    padding: 8px 22px;
+    font-size: 14px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+  }
+  button:hover { border-color: #555; }
+  #hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<h1>Typing Speed Test</h1>
+<div id="info">
+  <div>Time: <span id="time">30</span>s</div>
+  <div>WPM: <span id="wpm">0</span></div>
+  <div>Accuracy: <span id="accuracy">100</span>%</div>
+</div>
+
+<div id="panel">
+  <div id="textDisplay"></div>
+  <input type="text" id="inputBox" placeholder="Click here and start typing..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div id="message"></div>
+  <button id="restartBtn">Try Again</button>
+</div>
+
+<div id="hint">Start typing to begin the timer — 30 seconds, as many words as you can</div>
+
+<script>
+const SENTENCES = [
+  "The quick brown fox jumps over the lazy dog while the sun sets slowly behind the hills.",
+  "Practice makes perfect when it comes to building speed and accuracy on the keyboard.",
+  "A journey of a thousand miles begins with a single step taken with confidence.",
+  "Simple design choices often lead to the most usable and long lasting products.",
+  "Consistency and patience matter more than raw talent in the long run of any skill.",
+  "The library was quiet except for the soft sound of pages turning one by one.",
+  "Good habits are built slowly through small repeated actions over many days.",
+  "Clear thinking usually starts with asking better questions instead of finding faster answers.",
+  "The mountain air felt crisp and cold as the hikers reached the rocky summit.",
+  "Every expert was once a beginner who refused to give up after making mistakes.",
+];
+
+const textDisplay = document.getElementById('textDisplay');
+const inputBox = document.getElementById('inputBox');
+const timeEl = document.getElementById('time');
+const wpmEl = document.getElementById('wpm');
+const accuracyEl = document.getElementById('accuracy');
+const messageEl = document.getElementById('message');
+const restartBtn = document.getElementById('restartBtn');
+
+const DURATION = 30;
+let targetText, timeLeft, timer, started, totalTyped, totalCorrect, finished;
+
+function pickText() {
+  const a = SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+  const b = SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+  return a + ' ' + b;
+}
+
+function renderText(typed) {
+  let html = '';
+  for (let i = 0; i < targetText.length; i++) {
+    const char = targetText[i];
+    if (i < typed.length) {
+      html += `<span class="${typed[i] === char ? 'correct' : 'incorrect'}">${escapeHtml(char)}</span>`;
+    } else if (i === typed.length) {
+      html += `<span class="current">${escapeHtml(char)}</span>`;
+    } else {
+      html += `<span class="pending">${escapeHtml(char)}</span>`;
+    }
+  }
+  textDisplay.innerHTML = html;
+}
+
+function escapeHtml(c) {
+  if (c === '&') return '&amp;';
+  if (c === '<') return '&lt;';
+  if (c === '>') return '&gt;';
+  return c;
+}
+
+function init() {
+  targetText = pickText();
+  timeLeft = DURATION;
+  started = false;
+  finished = false;
+  totalTyped = 0;
+  totalCorrect = 0;
+  timeEl.textContent = timeLeft;
+  wpmEl.textContent = 0;
+  accuracyEl.textContent = 100;
+  messageEl.textContent = '';
+  restartBtn.style.display = 'none';
+  inputBox.value = '';
+  inputBox.disabled = false;
+  renderText('');
+  clearInterval(timer);
+  inputBox.focus();
+}
+
+function startTimer() {
+  started = true;
+  timer = setInterval(() => {
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    updateStats();
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function updateStats() {
+  const elapsedMinutes = (DURATION - timeLeft) / 60;
+  const wpm = elapsedMinutes > 0 ? Math.round((totalCorrect / 5) / elapsedMinutes) : 0;
+  const accuracy = totalTyped > 0 ? Math.round((totalCorrect / totalTyped) * 100) : 100;
+  wpmEl.textContent = wpm;
+  accuracyEl.textContent = accuracy;
+}
+
+inputBox.addEventListener('input', () => {
+  if (finished) return;
+  if (!started) startTimer();
+
+  const typed = inputBox.value;
+
+  // recompute correctness totals from scratch for the typed portion
+  totalTyped = typed.length;
+  totalCorrect = 0;
+  for (let i = 0; i < typed.length; i++) {
+    if (typed[i] === targetText[i]) totalCorrect++;
+  }
+
+  renderText(typed);
+  updateStats();
+
+  if (typed.length >= targetText.length) {
+    endGame();
+  }
+});
+
+function endGame() {
+  if (finished) return;
+  finished = true;
+  clearInterval(timer);
+  inputBox.disabled = true;
+  updateStats();
+  messageEl.textContent = `Done! ${wpmEl.textContent} WPM at ${accuracyEl.textContent}% accuracy.`;
+  restartBtn.style.display = 'inline-block';
+}
+
+restartBtn.addEventListener('click', init);
+
+init();
+</script>
+
+</body>
+</html>
