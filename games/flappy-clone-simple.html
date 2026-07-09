@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Flappy Clone</title>
 <style>
   * { box-sizing: border-box; }
@@ -16,14 +17,18 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     color: #333;
     user-select: none;
+    padding: 12px;
   }
   h1 {
-    margin: 10px 0;
+    margin: 6px 0;
     color: #333;
     font-weight: 600;
+    font-size: 20px;
   }
   #wrap {
     position: relative;
+    width: 100%;
+    max-width: 360px;
   }
   canvas {
     background: #fafafa;
@@ -31,6 +36,10 @@
     border-radius: 4px;
     display: block;
     cursor: pointer;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 360 / 520;
+    touch-action: manipulation;
   }
   #overlay {
     position: absolute;
@@ -43,21 +52,23 @@
     text-align: center;
     background: rgba(255,255,255,0.85);
     pointer-events: none;
+    padding: 10px;
   }
   #overlay .title {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 600;
     margin-bottom: 8px;
     color: #333;
   }
   #overlay .sub {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
   }
   #hint {
     margin-top: 10px;
     font-size: 13px;
     color: #777;
+    text-align: center;
   }
 </style>
 </head>

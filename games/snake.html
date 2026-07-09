@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Snake</title>
 <style>
   * { box-sizing: border-box; }
@@ -16,26 +17,34 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     color: #333;
     user-select: none;
+    padding: 12px;
   }
   h1 {
-    margin: 10px 0;
+    margin: 6px 0;
     font-weight: 600;
+    font-size: 20px;
   }
   #info {
     display: flex;
     gap: 30px;
-    font-size: 16px;
+    font-size: 15px;
     margin-bottom: 12px;
     color: #555;
   }
   #wrap {
     position: relative;
+    width: 100%;
+    max-width: 400px;
   }
   canvas {
     background: #fafafa;
     border: 2px solid #999;
     border-radius: 4px;
     display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    touch-action: none;
   }
   #overlay {
     position: absolute;
@@ -48,21 +57,23 @@
     text-align: center;
     background: rgba(255,255,255,0.85);
     border-radius: 4px;
+    padding: 10px;
   }
   #overlay .title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
     margin-bottom: 8px;
     color: #333;
   }
   #overlay .sub {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
   }
   #hint {
     margin-top: 10px;
     font-size: 13px;
     color: #999;
+    text-align: center;
   }
   .hidden { display: none !important; }
 </style>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>2048</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --cell: clamp(60px, 20vw, 80px);
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: #f4f4f4;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #333;
+    user-select: none;
+  }
+  h1 {
+    margin: 6px 0;
+    font-weight: 600;
+    font-size: 20px;
+  }
+  #info {
+    display: flex;
+    gap: 30px;
+    font-size: 15px;
+    margin-bottom: 14px;
+    color: #555;
+  }
+  #info span { font-weight: 600; color: #333; }
+  #wrap {
+    position: relative;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(4, var(--cell));
+    grid-template-rows: repeat(4, var(--cell));
+    gap: clamp(6px, 2.5vw, 10px);
+    background: #ddd;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    padding: clamp(6px, 2.5vw, 10px);
+    touch-action: none;
+  }
+  .cell {
+    background: #eee;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(18px, 6vw, 26px);
+    font-weight: 600;
+    color: #333;
+    transition: background 0.1s ease;
+  }
+  .cell[data-val="0"] { background: #eee; color: transparent; }
+  .cell[data-val="2"] { background: #f5f5f5; }
+  .cell[data-val="4"] { background: #ececec; }
+  .cell[data-val="8"] { background: #ddd; color: #fff; }
+  .cell[data-val="16"] { background: #ccc; color: #fff; }
+  .cell[data-val="32"] { background: #bbb; color: #fff; }
+  .cell[data-val="64"] { background: #aaa; color: #fff; }
+  .cell[data-val="128"] { background: #999; color: #fff; font-size: clamp(15px, 5vw, 22px); }
+  .cell[data-val="256"] { background: #888; color: #fff; font-size: clamp(15px, 5vw, 22px); }
+  .cell[data-val="512"] { background: #777; color: #fff; font-size: clamp(15px, 5vw, 22px); }
+  .cell[data-val="1024"] { background: #666; color: #fff; font-size: clamp(13px, 4.2vw, 19px); }
+  .cell[data-val="2048"] { background: #444; color: #fff; font-size: clamp(13px, 4.2vw, 19px); }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(255,255,255,0.85);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  #overlay .title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  #overlay .sub {
+    font-size: 13px;
+    color: #666;
+  }
+  button {
+    margin-top: 14px;
+    padding: 10px 22px;
+    font-size: 14px;
+    border: 1px solid #999;
+    border-radius: 5px;
+    background: #fff;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { border-color: #555; }
+  #hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<h1>2048</h1>
+<div id="info">
+  <div>Score: <span id="score">0</span></div>
+  <div>Best: <span id="best">0</span></div>
+</div>
+
+<div id="wrap">
+  <div id="board"></div>
+  <div id="overlay">
+    <div class="title" id="overlayTitle">Game Over</div>
+    <div class="sub" id="overlaySub">Score: 0</div>
+    <button id="restartBtn">Try Again</button>
+  </div>
+</div>
+
+<div id="hint">Use arrow keys or swipe to move tiles — merge matching numbers to reach 2048</div>
+
+<script>
+const SIZE = 4;
+const boardEl = document.getElementById('board');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlayTitle');
+const overlaySub = document.getElementById('overlaySub');
+const restartBtn = document.getElementById('restartBtn');
+
+let grid, score, best, gameOver, won, cellEls;
+
+best = 0;
+
+function buildBoardDOM() {
+  boardEl.innerHTML = '';
+  cellEls = [];
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.val = '0';
+    boardEl.appendChild(cell);
+    cellEls.push(cell);
+  }
+}
+
+function emptyGrid() {
+  return Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+}
+
+function init() {
+  grid = emptyGrid();
+  score = 0;
+  gameOver = false;
+  won = false;
+  scoreEl.textContent = score;
+  overlay.style.display = 'none';
+  buildBoardDOM();
+  addRandomTile();
+  addRandomTile();
+  render();
+}
+
+function addRandomTile() {
+  const empties = [];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r][c] === 0) empties.push([r, c]);
+    }
+  }
+  if (empties.length === 0) return;
+  const [r, c] = empties[Math.floor(Math.random() * empties.length)];
+  grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+}
+
+function render() {
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const val = grid[r][c];
+      const cell = cellEls[r * SIZE + c];
+      cell.dataset.val = String(val);
+      cell.textContent = val === 0 ? '' : val;
+    }
+  }
+  scoreEl.textContent = score;
+  bestEl.textContent = best;
+}
+
+function slideRowLeft(row) {
+  let arr = row.filter(v => v !== 0);
+  for (let i = 0; i < arr.length - 1; i++) {
+    if (arr[i] === arr[i + 1]) {
+      arr[i] *= 2;
+      score += arr[i];
+      if (arr[i] === 2048) won = true;
+      arr.splice(i + 1, 1);
+    }
+  }
+  while (arr.length < SIZE) arr.push(0);
+  return arr;
+}
+
+function rotateGridCW(g) {
+  const newGrid = emptyGrid();
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      newGrid[c][SIZE - 1 - r] = g[r][c];
+    }
+  }
+  return newGrid;
+}
+
+function move(direction) {
+  if (gameOver) return;
+
+  let workingGrid = grid.map(row => row.slice());
+  let rotations = 0;
+  // normalize so we can always "slide left"
+  if (direction === 'up') rotations = 3;
+  else if (direction === 'right') rotations = 2;
+  else if (direction === 'down') rotations = 1;
+
+  for (let i = 0; i < rotations; i++) workingGrid = rotateGridCW(workingGrid);
+
+  let moved = false;
+  const result = workingGrid.map(row => {
+    const newRow = slideRowLeft(row);
+    if (!moved && newRow.some((v, idx) => v !== row[idx])) moved = true;
+    return newRow;
+  });
+
+  let finalGrid = result;
+  const remainingRotations = (4 - rotations) % 4;
+  for (let i = 0; i < remainingRotations; i++) finalGrid = rotateGridCW(finalGrid);
+
+  if (moved) {
+    grid = finalGrid;
+    addRandomTile();
+    render();
+    best = Math.max(best, score);
+    if (won) {
+      endGame(true);
+    } else if (!hasMovesLeft()) {
+      endGame(false);
+    }
+  }
+}
+
+function hasMovesLeft() {
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (grid[r][c] === 0) return true;
+      if (c < SIZE - 1 && grid[r][c] === grid[r][c + 1]) return true;
+      if (r < SIZE - 1 && grid[r][c] === grid[r + 1][c]) return true;
+    }
+  }
+  return false;
+}
+
+function endGame(isWin) {
+  gameOver = true;
+  best = Math.max(best, score);
+  overlayTitle.textContent = isWin ? 'You reached 2048!' : 'Game Over';
+  overlaySub.textContent = `Score: ${score}  |  Best: ${best}`;
+  overlay.style.display = 'flex';
+}
+
+document.addEventListener('keydown', e => {
+  const map = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', s: 'down', a: 'left', d: 'right',
+    W: 'up', S: 'down', A: 'left', D: 'right',
+  };
+  if (map[e.key]) {
+    e.preventDefault();
+    move(map[e.key]);
+  }
+});
+
+// touch swipe support
+let touchStartX = 0, touchStartY = 0;
+boardEl.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+}, { passive: true });
+boardEl.addEventListener('touchend', e => {
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    move(dx > 0 ? 'right' : 'left');
+  } else {
+    move(dy > 0 ? 'down' : 'up');
+  }
+}, { passive: true });
+
+restartBtn.addEventListener('click', init);
+
+init();
+</script>
+
+</body>
+</html>
