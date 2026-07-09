@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Mini Game Hub</title>
 <style>
   * { box-sizing: border-box; }
@@ -11,7 +12,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
+    padding: 24px 16px;
     background: #f4f4f4;
     font-family: 'Segoe UI', Arial, sans-serif;
     color: #333;
@@ -39,7 +40,7 @@
   #searchBox input {
     width: 100%;
     padding: 10px 14px;
-    font-size: 14px;
+    font-size: 16px;
     border: 2px solid #ddd;
     border-radius: 6px;
     outline: none;
@@ -174,8 +175,9 @@ const GAMES = [
   { icon: '🔨', name: 'Whack-a-Mole', desc: 'Click moles before time runs out', file: 'games/whack-a-mole.html' },
   { icon: '🐦', name: 'Flappy Clone', desc: 'Flap through the pipes', file: 'games/flappy-clone-simple.html' },
   { icon: '🐍', name: 'Snake', desc: "Eat food, grow, don't crash", file: 'games/snake.html' },
-  { icon: '', name: 'Typing Speed Test', desc: "Type!", file: 'games/typing-speed-test.html' },
-  { icon: '', name: 'Memory Test', desc: "See and remember :)", file: 'games/memory-match.html' },
+  { icon: '⌨', name: 'Typing Speed Test', desc: 'Type as fast and accurately as you can', file: 'games/typing-speed-test.html' },
+  { icon: '🔢', name: '2048', desc: 'Slide and merge tiles to reach 2048', file: 'games/2048.html' },
+  { icon: '🧠', name: 'Memory Match', desc: 'Flip cards to find matching pairs', file: 'games/memory-match.html' },
 ];
 // ------------------------------------------------
 
